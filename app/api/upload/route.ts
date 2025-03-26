@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { cloudinary } from '@/cloudinary';
 import { UploadApiResponse } from 'cloudinary';
+import { getEmailFromAuthToken } from "@/lib/utils"
 
 export const config = {
   api: {
@@ -43,9 +44,16 @@ const uploadToCloudinary = async (file: File, resourceType: 'image' | 'video', f
   }
 };
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
+  const email = getEmailFromAuthToken(request);
+  if (!email) {
+    return NextResponse.json(
+        { message: 'Unauthorized. Email not found.' },
+        { status: 401 }
+    );
+  }
   try {
-    const formData = await req.formData();
+    const formData = await request.formData();
 
     const title = formData.get('title') as string;
     const genre = formData.get('genre') as string;
@@ -66,8 +74,9 @@ export async function POST(req: NextRequest) {
       uploadToCloudinary(audioFile, 'video', 'tracks'),
     ]);
 
-    // TODO: Replace with actual authenticated user/artist ID
-    const artistId = 1;
+    const artistResult = await db
+      `SELECT id FROM artists WHERE user_id=(SELECT id FROM users WHERE email= ${email})`;
+    const artistId = artistResult[0].id;
 
     // Insert song into database
     const [newSong] = await db`

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
 
 const genres = [
   "Pop", "Rock", "Hip Hop", "R&B", "Electronic", "Jazz", "Classical", 
@@ -90,51 +91,47 @@ export default function MusicUploadPage() {
     formData.append('audioFile', audioFile)
   
     try {
-      // Send upload request using fetch instead of axios
+      // Send upload request
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData
       })
   
-      // Check if the response is ok
       if (!response.ok) {
-        // Try to parse error response, but handle cases where response might be empty
-        let errorMessage = 'Upload failed'
-        try {
-          const errorData = await response.text() // Use text() instead of json()
-          // Parse text if it looks like JSON, otherwise use the text directly
-          try {
-            const parsedError = JSON.parse(errorData)
-            errorMessage = parsedError.error || errorData
-          } catch {
-            errorMessage = errorData || 'Upload failed'
-          }
-        } catch {
-          // If even text() fails, use default error message
-          errorMessage = 'Upload failed'
-        }
-  
-        throw new Error(errorMessage)
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Upload failed')
       }
-  
-      const responseData = await response.json()
-  
+
+      const result = await response.json()
+
       // Show success toast
       toast({
-        title: "Upload Successful",
-        description: "Your track has been uploaded!",
+        title: "🎵 Upload Successful!",
+        description: "Your song is now available to the world!",
+        className: "bg-green-500 text-white border-0",
+        duration: 3000
       })
-      router.push('/artist/upload')
+
+      // Reset form
+      setTitle('')
+      setGenre('')
+      setCoverImage(null)
+      setAudioFile(null)
+
+      // Redirect after delay
+      setTimeout(() => {
+        router.push('/artist/upload')
+      }, 1500)
+
     } catch (error) {
-      // Handle upload error
-      console.error('Upload failed:', error)
+      console.error('Upload error:', error)
       toast({
         title: "Upload Failed",
-        description: error instanceof Error ? error.message : "There was an error uploading your track",
-        variant: "destructive"
+        description: error instanceof Error ? error.message : "An error occurred during upload",
+        variant: "destructive",
+        duration: 3000
       })
     } finally {
-      // Stop loading state
       setIsLoading(false)
     }
   }
@@ -148,11 +145,12 @@ export default function MusicUploadPage() {
   const removeAudioFile = () => {
     setAudioFile(null)
   }
+
   const handleLogout = async () => {
     try {
       const response = await fetch('/api/auth/logout', {
-      method: 'POST',
-      credentials: 'same-origin'
+        method: 'POST',
+        credentials: 'same-origin'
       });  
       if (response.ok) {
         window.location.href = '/login';
@@ -163,16 +161,25 @@ export default function MusicUploadPage() {
       console.error('Logout error:', error);
     }
   };
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <Button 
-        variant="ghost" 
-        className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-destructive"
-        onClick={handleLogout}
+      {/* Toaster component for notifications */}
+      <Toaster />
+
+      {/* Logout Button */}
+      <div className="flex justify-end mb-6">
+        <Button 
+          variant="ghost" 
+          className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-destructive"
+          onClick={handleLogout}
         >
-        <LogOut className="mr-2 h-4 w-4" />
-        Logout
-      </Button>
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
+        </Button>
+      </div>
+
+      {/* Upload Form */}
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Upload Your Music</h1>
@@ -183,18 +190,19 @@ export default function MusicUploadPage() {
 
         {/* Track Title */}
         <div className="space-y-2">
-          <Label>Track Title</Label>
+          <Label>Track Title *</Label>
           <Input 
             placeholder="Enter track title" 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            required
           />
         </div>
 
         {/* Genre Selection */}
         <div className="space-y-2">
-          <Label>Genre</Label>
-          <Select value={genre} onValueChange={setGenre}>
+          <Label>Genre *</Label>
+          <Select value={genre} onValueChange={setGenre} required>
             <SelectTrigger>
               <SelectValue placeholder="Select genre" />
             </SelectTrigger>
@@ -210,7 +218,7 @@ export default function MusicUploadPage() {
 
         {/* Cover Image Upload */}
         <div className="space-y-2">
-          <Label>Cover Image</Label>
+          <Label>Cover Image *</Label>
           <div className="flex flex-col items-center">
             {coverImage ? (
               <div className="relative w-64 h-64">
@@ -241,10 +249,11 @@ export default function MusicUploadPage() {
               className="hidden" 
               id="cover-image"
               onChange={handleImageChange}
+              required
             />
             <Label 
               htmlFor="cover-image" 
-              className="mt-4 cursor-pointer px-4 py-2 bg-primary text-primary-foreground rounded-md"
+              className="mt-4 cursor-pointer px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
             >
               {coverImage ? "Change Image" : "Upload Image"}
             </Label>
@@ -253,12 +262,12 @@ export default function MusicUploadPage() {
 
         {/* Audio File Upload */}
         <div className="space-y-2">
-          <Label>Audio File</Label>
+          <Label>Audio File *</Label>
           <div className="flex flex-col items-center">
             {audioFile ? (
-              <div className="flex items-center space-x-4 p-4 border rounded-lg">
+              <div className="flex items-center space-x-4 p-4 border rounded-lg w-full max-w-md">
                 <Music className="h-8 w-8 text-primary" />
-                <span className="truncate max-w-xs">{audioFile.name}</span>
+                <span className="truncate flex-1">{audioFile.name}</span>
                 <Button 
                   type="button"
                   variant="ghost" 
@@ -269,7 +278,7 @@ export default function MusicUploadPage() {
                 </Button>
               </div>
             ) : (
-              <div className="border-2 border-dashed p-8 text-center rounded-lg">
+              <div className="border-2 border-dashed p-8 text-center rounded-lg w-full max-w-md">
                 <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                 <p className="mt-2 text-sm">Upload Audio File</p>
               </div>
@@ -280,10 +289,11 @@ export default function MusicUploadPage() {
               className="hidden" 
               id="audio-file"
               onChange={handleAudioChange}
+              required
             />
             <Label 
               htmlFor="audio-file" 
-              className="mt-4 cursor-pointer px-4 py-2 bg-primary text-primary-foreground rounded-md"
+              className="mt-4 cursor-pointer px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
             >
               {audioFile ? "Change Audio" : "Upload Audio"}
             </Label>
@@ -291,12 +301,13 @@ export default function MusicUploadPage() {
         </div>
 
         {/* Submit Buttons */}
-        <div className="flex space-x-4">
+        <div className="flex space-x-4 pt-4">
           <Button 
             type="button" 
             variant="outline" 
             onClick={() => router.push('/artist/dashboard')}
             disabled={isLoading}
+            className="flex-1"
           >
             Cancel
           </Button>
@@ -305,7 +316,17 @@ export default function MusicUploadPage() {
             className="flex-1" 
             disabled={isLoading}
           >
-            {isLoading ? "Uploading..." : "Upload Track"}
+            {isLoading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Uploading...
+              </span>
+            ) : (
+              "Upload Track"
+            )}
           </Button>
         </div>
       </form>

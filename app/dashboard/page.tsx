@@ -100,9 +100,6 @@ export default function Home() {
         <section className="mb-10 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold tracking-tight">All Songs</h2>
-            <Link href="/upload">
-              <Button size="sm">Upload Music</Button>
-            </Link>
           </div>
           
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
