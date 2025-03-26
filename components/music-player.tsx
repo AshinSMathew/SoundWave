@@ -1,92 +1,139 @@
 "use client"
-
-import { useState } from "react"
-import { Heart, SkipBack, Play, Pause, SkipForward, Volume2, ListMusic, Maximize2 } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-
-import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
+import { useState, useRef, useEffect } from 'react'
+import { Play, Pause, SkipBack, SkipForward, Volume2 } from 'lucide-react'
+import { Slider } from '@/components/ui/slider'
 
 interface MusicPlayerProps {
   title: string
   artist: string
   coverUrl: string
+  src: string  // Changed from audioUrl to src to match the audio element prop
 }
 
-export function MusicPlayer({ title, artist, coverUrl }: MusicPlayerProps) {
+export function MusicPlayer({ title, artist, coverUrl, src }: MusicPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
-  const duration = 225 // 3:45 in seconds
+  const [duration, setDuration] = useState(0)
+  const [volume, setVolume] = useState(80)
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration)
+    }
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime)
+    }
+
+    const handleEnded = () => {
+      setIsPlaying(false)
+      setCurrentTime(0)
+    }
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata)
+    audio.addEventListener('timeupdate', handleTimeUpdate)
+    audio.addEventListener('ended', handleEnded)
+
+    return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      audio.removeEventListener('timeupdate', handleTimeUpdate)
+      audio.removeEventListener('ended', handleEnded)
+    }
+  }, [src])
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100
+    }
+  }, [volume])
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      audioRef.current?.pause()
+    } else {
+      audioRef.current?.play()
+    }
+    setIsPlaying(!isPlaying)
+  }
+
+  const handleSeek = (value: number[]) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = value[0]
+    }
+  }
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60)
+    const seconds = Math.floor(time % 60)
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
+  }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-20 items-center justify-between">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
+      <div className="container flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="relative h-12 w-12 overflow-hidden rounded-md">
-            <Image src={coverUrl || "/placeholder.svg"} alt={title} fill className="object-cover" />
-          </div>
+          <img 
+            src={coverUrl} 
+            alt={title} 
+            className="h-12 w-12 rounded-md object-cover"
+          />
           <div>
-            <h4 className="font-medium">{title}</h4>
-            <Link href="#" className="text-sm text-muted-foreground hover:text-primary">
-              {artist}
-            </Link>
+            <h3 className="font-medium">{title}</h3>
+            <p className="text-sm text-muted-foreground">{artist}</p>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Heart className="h-4 w-4" />
-          </Button>
         </div>
 
-        <div className="flex flex-col items-center gap-1 md:w-1/3">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <SkipBack className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-10 w-10 rounded-full"
-              onClick={() => setIsPlaying(!isPlaying)}
+        <div className="flex flex-col items-center gap-2 w-1/2">
+          <div className="flex items-center gap-4">
+            <button className="text-muted-foreground hover:text-primary">
+              <SkipBack className="h-5 w-5" />
+            </button>
+            <button 
+              className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white"
+              onClick={togglePlay}
             >
-              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <SkipForward className="h-4 w-4" />
-            </Button>
+              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+            </button>
+            <button className="text-muted-foreground hover:text-primary">
+              <SkipForward className="h-5 w-5" />
+            </button>
           </div>
-          <div className="flex w-full items-center gap-2">
-            <span className="w-10 text-right text-xs text-muted-foreground">{formatTime(currentTime)}</span>
-            <Slider
+          <div className="flex items-center gap-2 w-full">
+            <span className="text-xs text-muted-foreground w-10">
+              {formatTime(currentTime)}
+            </span>
+            <Slider 
               value={[currentTime]}
               max={duration}
-              step={1}
-              onValueChange={(value) => setCurrentTime(value[0])}
-              className="w-full"
+              onValueChange={handleSeek}
+              className="flex-1"
             />
-            <span className="w-10 text-xs text-muted-foreground">{formatTime(duration)}</span>
+            <span className="text-xs text-muted-foreground w-10">
+              {formatTime(duration)}
+            </span>
           </div>
         </div>
 
-        <div className="hidden items-center gap-4 md:flex">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <ListMusic className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <Volume2 className="h-4 w-4 text-muted-foreground" />
-            <Slider defaultValue={[70]} max={100} step={1} className="w-24" />
-          </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <Maximize2 className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-2">
+          <Volume2 className="h-5 w-5 text-muted-foreground" />
+          <Slider 
+            value={[volume]}
+            max={100}
+            onValueChange={(value) => setVolume(value[0])}
+            className="w-24"
+          />
         </div>
+
+        <audio 
+          ref={audioRef} 
+          src={src} 
+          preload="metadata"
+        />
       </div>
     </div>
   )
 }
-
-function formatTime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = Math.floor(seconds % 60)
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
-}
-

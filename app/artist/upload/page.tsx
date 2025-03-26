@@ -1,266 +1,314 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, FormEvent } from "react"
 import Link from "next/link"
-import { Music, Upload, X, ImageIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Music, Upload, X, ImageIcon, LogOut } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "@/components/ui/use-toast"
 
 const genres = [
-  "Pop",
-  "Rock",
-  "Hip Hop",
-  "R&B",
-  "Electronic",
-  "Jazz",
-  "Classical",
-  "Folk",
-  "Country",
-  "Indie",
-  "Metal",
-  "Reggae",
-  "Blues",
-  "Soul",
-  "Funk",
-  "Punk",
-  "World",
+  "Pop", "Rock", "Hip Hop", "R&B", "Electronic", "Jazz", "Classical", 
+  "Folk", "Country", "Indie", "Metal", "Reggae", "Blues", "Soul", 
+  "Funk", "Punk", "World"
 ]
 
-export default function ArtistUploadPage() {
-  const [coverImage, setCoverImage] = useState<string | null>(null)
-  const [audioFile, setAudioFile] = useState<string | null>(null)
+export default function MusicUploadPage() {
+  const router = useRouter()
+  
+  // State for form fields
+  const [title, setTitle] = useState('')
+  const [genre, setGenre] = useState('')
+  
+  // State for file uploads
+  const [coverImage, setCoverImage] = useState<File | null>(null)
+  const [audioFile, setAudioFile] = useState<File | null>(null)
+  
+  // Loading state
+  const [isLoading, setIsLoading] = useState(false)
 
+  // Image file change handler
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        if (event.target) {
-          setCoverImage(event.target.result as string)
-        }
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate image file size (2MB limit)
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Cover image must be less than 2MB",
+          variant: "destructive"
+        })
+        return
       }
-      reader.readAsDataURL(file)
+      setCoverImage(file)
     }
   }
 
+  // Audio file change handler
   const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      setAudioFile(file.name)
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate audio file size (20MB limit)
+      if (file.size > 20 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Audio file must be less than 20MB",
+          variant: "destructive"
+        })
+        return
+      }
+      setAudioFile(file)
     }
   }
 
+  // Form submission handler
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    
+    // Validate form fields
+    if (!title || !genre || !coverImage || !audioFile) {
+      toast({
+        title: "Incomplete Form",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      })
+      return
+    }
+  
+    // Start loading state
+    setIsLoading(true)
+  
+    // Create form data for upload
+    const formData = new FormData()
+    formData.append('title', title)
+    formData.append('genre', genre)
+    formData.append('coverImage', coverImage)
+    formData.append('audioFile', audioFile)
+  
+    try {
+      // Send upload request using fetch instead of axios
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      })
+  
+      // Check if the response is ok
+      if (!response.ok) {
+        // Try to parse error response, but handle cases where response might be empty
+        let errorMessage = 'Upload failed'
+        try {
+          const errorData = await response.text() // Use text() instead of json()
+          // Parse text if it looks like JSON, otherwise use the text directly
+          try {
+            const parsedError = JSON.parse(errorData)
+            errorMessage = parsedError.error || errorData
+          } catch {
+            errorMessage = errorData || 'Upload failed'
+          }
+        } catch {
+          // If even text() fails, use default error message
+          errorMessage = 'Upload failed'
+        }
+  
+        throw new Error(errorMessage)
+      }
+  
+      const responseData = await response.json()
+  
+      // Show success toast
+      toast({
+        title: "Upload Successful",
+        description: "Your track has been uploaded!",
+      })
+      router.push('/artist/upload')
+    } catch (error) {
+      // Handle upload error
+      console.error('Upload failed:', error)
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "There was an error uploading your track",
+        variant: "destructive"
+      })
+    } finally {
+      // Stop loading state
+      setIsLoading(false)
+    }
+  }
+
+  // Remove cover image
+  const removeCoverImage = () => {
+    setCoverImage(null)
+  }
+
+  // Remove audio file
+  const removeAudioFile = () => {
+    setAudioFile(null)
+  }
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'same-origin'
+      });  
+      if (response.ok) {
+        window.location.href = '/login';
+      } else {
+        console.error('Logout failed');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
-          <div className="flex gap-6 md:gap-10">
-            <Link href="/" className="flex items-center space-x-2">
-              <Music className="h-6 w-6 text-primary" />
-              <span className="inline-block font-bold">SoundWave</span>
-            </Link>
-          </div>
-          <div className="ml-auto flex items-center space-x-4">
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                Back to Home
-              </Button>
-            </Link>
+    <div className="container mx-auto px-4 py-8">
+      <Button 
+        variant="ghost" 
+        className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-destructive"
+        onClick={handleLogout}
+        >
+        <LogOut className="mr-2 h-4 w-4" />
+        Logout
+      </Button>
+      <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold">Upload Your Music</h1>
+          <p className="text-muted-foreground">
+            Share your track with the world
+          </p>
+        </div>
+
+        {/* Track Title */}
+        <div className="space-y-2">
+          <Label>Track Title</Label>
+          <Input 
+            placeholder="Enter track title" 
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </div>
+
+        {/* Genre Selection */}
+        <div className="space-y-2">
+          <Label>Genre</Label>
+          <Select value={genre} onValueChange={setGenre}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select genre" />
+            </SelectTrigger>
+            <SelectContent>
+              {genres.map((genreOption) => (
+                <SelectItem key={genreOption} value={genreOption}>
+                  {genreOption}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Cover Image Upload */}
+        <div className="space-y-2">
+          <Label>Cover Image</Label>
+          <div className="flex flex-col items-center">
+            {coverImage ? (
+              <div className="relative w-64 h-64">
+                <img 
+                  src={URL.createObjectURL(coverImage)} 
+                  alt="Cover preview" 
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <Button 
+                  type="button"
+                  variant="destructive" 
+                  size="icon" 
+                  className="absolute top-2 right-2"
+                  onClick={removeCoverImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed p-8 text-center rounded-lg">
+                <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                <p className="mt-2 text-sm">Upload Cover Image</p>
+              </div>
+            )}
+            <Input 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              id="cover-image"
+              onChange={handleImageChange}
+            />
+            <Label 
+              htmlFor="cover-image" 
+              className="mt-4 cursor-pointer px-4 py-2 bg-primary text-primary-foreground rounded-md"
+            >
+              {coverImage ? "Change Image" : "Upload Image"}
+            </Label>
           </div>
         </div>
-      </header>
-      <main className="container py-8">
-        <div className="mx-auto max-w-3xl space-y-8">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Upload Your Music</h1>
-            <p className="text-muted-foreground">
-              Share your music with the world. Fill out the details below to upload your track.
-            </p>
-          </div>
 
-          <div className="grid gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="title">Track Title</Label>
-              <Input id="title" placeholder="Enter the title of your track" />
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="genre">Genre</Label>
-                <Select>
-                  <SelectTrigger id="genre">
-                    <SelectValue placeholder="Select genre" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {genres.map((genre) => (
-                      <SelectItem key={genre} value={genre.toLowerCase()}>
-                        {genre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+        {/* Audio File Upload */}
+        <div className="space-y-2">
+          <Label>Audio File</Label>
+          <div className="flex flex-col items-center">
+            {audioFile ? (
+              <div className="flex items-center space-x-4 p-4 border rounded-lg">
+                <Music className="h-8 w-8 text-primary" />
+                <span className="truncate max-w-xs">{audioFile.name}</span>
+                <Button 
+                  type="button"
+                  variant="ghost" 
+                  size="icon"
+                  onClick={removeAudioFile}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="mood">Mood</Label>
-                <Select>
-                  <SelectTrigger id="mood">
-                    <SelectValue placeholder="Select mood" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="happy">Happy</SelectItem>
-                    <SelectItem value="sad">Sad</SelectItem>
-                    <SelectItem value="energetic">Energetic</SelectItem>
-                    <SelectItem value="relaxed">Relaxed</SelectItem>
-                    <SelectItem value="romantic">Romantic</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="epic">Epic</SelectItem>
-                  </SelectContent>
-                </Select>
+            ) : (
+              <div className="border-2 border-dashed p-8 text-center rounded-lg">
+                <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                <p className="mt-2 text-sm">Upload Audio File</p>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" placeholder="Tell us about your track" className="min-h-[120px]" />
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Cover Image</Label>
-                <div className="flex flex-col items-center gap-4">
-                  {coverImage ? (
-                    <div className="relative aspect-square w-full max-w-[200px] overflow-hidden rounded-md border">
-                      <img
-                        src={coverImage || "/placeholder.svg"}
-                        alt="Cover preview"
-                        className="h-full w-full object-cover"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute right-2 top-2 h-8 w-8 rounded-full"
-                        onClick={() => setCoverImage(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex aspect-square w-full max-w-[200px] flex-col items-center justify-center gap-2 rounded-md border border-dashed p-4 text-center">
-                      <ImageIcon className="h-8 w-8 text-muted-foreground" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Drag & drop or click to upload</p>
-                        <p className="text-xs text-muted-foreground">JPG, PNG or GIF, max 2MB</p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="w-full">
-                    <Input
-                      id="cover-image"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageChange}
-                    />
-                    <Label
-                      htmlFor="cover-image"
-                      className="inline-flex w-full cursor-pointer items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                    >
-                      {coverImage ? "Change Image" : "Upload Image"}
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Audio File</Label>
-                <div className="flex flex-col items-center gap-4">
-                  {audioFile ? (
-                    <div className="flex w-full max-w-[300px] items-center gap-2 rounded-md border p-4">
-                      <Music className="h-8 w-8 text-primary" />
-                      <div className="flex-1 overflow-hidden">
-                        <p className="truncate font-medium">{audioFile}</p>
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setAudioFile(null)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex aspect-square w-full max-w-[200px] flex-col items-center justify-center gap-2 rounded-md border border-dashed p-4 text-center">
-                      <Upload className="h-8 w-8 text-muted-foreground" />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Drag & drop or click to upload</p>
-                        <p className="text-xs text-muted-foreground">MP3, WAV or FLAC, max 20MB</p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="w-full">
-                    <Input
-                      id="audio-file"
-                      type="file"
-                      accept="audio/*"
-                      className="hidden"
-                      onChange={handleAudioChange}
-                    />
-                    <Label
-                      htmlFor="audio-file"
-                      className="inline-flex w-full cursor-pointer items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                    >
-                      {audioFile ? "Change Audio" : "Upload Audio"}
-                    </Label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tags</Label>
-              <Input placeholder="Add tags separated by commas (e.g. acoustic, guitar, vocal)" />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox id="explicit" />
-                <Label htmlFor="explicit" className="font-normal">
-                  This track contains explicit content
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="original" defaultChecked />
-                <Label htmlFor="original" className="font-normal">
-                  This is my original content and I own all rights
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="terms" />
-                <Label htmlFor="terms" className="font-normal">
-                  I agree to the{" "}
-                  <Link href="#" className="text-primary hover:underline">
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link href="#" className="text-primary hover:underline">
-                    Content Policy
-                  </Link>
-                </Label>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <Button variant="outline">Save as Draft</Button>
-              <Button className="flex-1">Upload Track</Button>
-            </div>
+            )}
+            <Input 
+              type="file" 
+              accept="audio/*" 
+              className="hidden" 
+              id="audio-file"
+              onChange={handleAudioChange}
+            />
+            <Label 
+              htmlFor="audio-file" 
+              className="mt-4 cursor-pointer px-4 py-2 bg-primary text-primary-foreground rounded-md"
+            >
+              {audioFile ? "Change Audio" : "Upload Audio"}
+            </Label>
           </div>
         </div>
-      </main>
+
+        {/* Submit Buttons */}
+        <div className="flex space-x-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => router.push('/artist/dashboard')}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            className="flex-1" 
+            disabled={isLoading}
+          >
+            {isLoading ? "Uploading..." : "Upload Track"}
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }
-
