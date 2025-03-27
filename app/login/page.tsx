@@ -67,7 +67,7 @@ export default function LoginPage() {
 
       // Determine redirect based on user role
       const redirectPath = data.user.role === 'artist' 
-        ? '/artist/upload' 
+        ? '/artist/dashboard' 
         : '/dashboard';
 
       // Redirect to appropriate page
