@@ -3,20 +3,12 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import {
-  Music,
-  Upload,
-  Search,
-  Play,
-} from "lucide-react"
-
+import {Music,Upload,Play,LogOut} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 
-// Type definition for song
 interface Song {
     id: number
     title: string
@@ -35,7 +27,6 @@ export default function ArtistDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch artist tracks
   useEffect(() => {
     async function fetchArtistTracks() {
       try {
@@ -61,14 +52,12 @@ export default function ArtistDashboard() {
     fetchArtistTracks()
   }, [])
 
-  // Filter songs based on search query
   const filteredSongs = songs.filter(
     (song) =>
       song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       song.genre.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  // Sort songs based on selected option
   const sortedSongs = [...filteredSongs].sort((a, b) => {
     switch (sortBy) {
       case "recent":
@@ -80,7 +69,6 @@ export default function ArtistDashboard() {
     }
   })
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -89,7 +77,6 @@ export default function ArtistDashboard() {
     )
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex justify-center items-center min-h-screen text-red-500">
@@ -98,27 +85,41 @@ export default function ArtistDashboard() {
     )
   }
 
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin'
+      });  
+      if (response.ok) {
+        window.location.href = '/login';
+      } else {
+        console.error('Logout failed');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
-          <div className="flex gap-6 md:gap-10">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-6 md:gap-10">
             <Link href="/" className="flex items-center space-x-2">
               <Music className="h-6 w-6 text-primary" />
               <span className="inline-block font-bold">SoundWave</span>
             </Link>
           </div>
-          <div className="flex flex-1 items-center space-x-4 sm:justify-end">
-            <div className="relative w-full max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search your music..."
-                className="w-full rounded-full bg-background pl-8 md:w-[300px] lg:w-[400px]"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          <div className="flex items-center">
+            <Button 
+              variant="ghost" 
+              className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>
@@ -165,9 +166,12 @@ export default function ArtistDashboard() {
                     {/* Track list rendering */}
                     {sortedSongs.map((song, index) => (
                       <div key={song.id}>
-                        <div className="grid grid-cols-12 gap-4 rounded-md px-4 py-3 transition-colors hover:bg-accent/50">
-                          <div className="col-span-6 flex items-center gap-3 md:col-span-5">
-                            <span className="w-8 text-center text-muted-foreground">{index + 1}</span>
+                        <div className="grid grid-cols-12 gap-2 rounded-md px-2 py-3 transition-colors hover:bg-accent/50 items-center">
+                          <div className="col-span-1 text-center text-muted-foreground text-sm">
+                            {index + 1}
+                          </div>
+                          
+                          <div className="col-span-3 md:col-span-2 flex items-center">
                             <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md">
                               <Image
                                 src={song.cover_image || "/placeholder.svg"}
@@ -176,19 +180,22 @@ export default function ArtistDashboard() {
                                 className="object-cover"
                               />
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <h3 className="truncate font-medium">{song.title}</h3>
-                              <p className="truncate text-sm text-muted-foreground">{song.genre}</p>
-                            </div>
                           </div>
 
-                          <div className="col-span-6 flex items-center justify-end gap-4">
-                            <span className="text-sm text-muted-foreground">
-                              {new Date(song.created_at).toLocaleDateString()}
-                            </span>
+                          <div className="col-span-5 md:col-span-4 flex flex-col min-w-0">
+                            <h3 className="font-medium truncate max-w-full">{song.title}</h3>
+                            <p className="text-sm text-muted-foreground truncate max-w-full">{song.genre}</p>
+                          </div>
+
+                          <div className="col-span-3 md:col-span-3 hidden md:block text-sm text-muted-foreground text-right">
+                            {new Date(song.created_at).toLocaleDateString()}
+                          </div>
+
+                          <div className="col-span-3 md:col-span-2 flex justify-end">
                             <Link href={song.audio_url} target="_blank">
                               <Button size="sm" variant="outline" className="gap-2">
-                                <Play className="h-4 w-4" /> Play
+                                <Play className="h-4 w-4" /> 
+                                <span className="hidden md:inline">Play</span>
                               </Button>
                             </Link>
                           </div>
