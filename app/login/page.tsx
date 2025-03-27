@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Music } from "lucide-react";
+import { Music, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ export default function LoginPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -36,11 +37,12 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setIsLoading(true);
 
-    // Basic input validation
     if (!formData.email || !formData.password) {
       setError("Please enter both email and password");
       setIsAlertOpen(true);
+      setIsLoading(false);
       return;
     }
 
@@ -59,23 +61,22 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle specific error messages from backend
         setError(data.error || "Login failed");
         setIsAlertOpen(true);
+        setIsLoading(false);
         return;
       }
 
-      // Determine redirect based on user role
       const redirectPath = data.user.role === 'artist' 
         ? '/artist/dashboard' 
         : '/dashboard';
-
-      // Redirect to appropriate page
       router.push(redirectPath);
+
     } catch (error) {
       console.error("Error during login:", error);
       setError("An unexpected error occurred");
       setIsAlertOpen(true);
+      setIsLoading(false);
     }
   };
 
@@ -101,6 +102,7 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -117,9 +119,23 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full">Sign in</Button>
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </Button>
             <div className="text-center text-sm">
               Don&apos;t have an account?{" "}
               <Link href="/signup" className="text-primary hover:underline">

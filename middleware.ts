@@ -7,8 +7,8 @@ const SECRET_KEY = process.env.JWT_SECRET || "your-secret-key";
 
 // Define paths for different access levels
 const PUBLIC_PATHS = ['/login', '/signup'];
-const LISTENER_PATHS = ['/dashboard', '/music'];
-const ARTIST_PATHS = ['/artist/upload', '/artist/profile'];
+const LISTENER_PATHS = ['/dashboard'];
+const ARTIST_PATHS = ['/artist/upload', '/artist/dashboard'];
 const ALL_PROTECTED_PATHS = [...LISTENER_PATHS, ...ARTIST_PATHS];
 
 export async function middleware(request: NextRequest) {
@@ -69,7 +69,7 @@ export async function middleware(request: NextRequest) {
       
       if (isListenerPath && payload.role !== 'listener') {
         // Non-listener trying to access listener path
-        return NextResponse.redirect(new URL("/artist/upload", request.url));
+        return NextResponse.redirect(new URL("/artist/dashboard", request.url));
       }
       
       // Valid token and correct role, allow access
@@ -95,8 +95,7 @@ export const config = {
     '/login',
     '/signup',
     '/dashboard',
-    '/music',
     '/artist/upload',
-    '/artist/profile'
+    '/artist/dashboard'
   ],
 };

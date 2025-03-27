@@ -1,9 +1,8 @@
 "use client"
 import { useState } from "react";
 import Link from "next/link";
-import { Music } from "lucide-react";
+import { Music, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +25,7 @@ export default function SignupPage() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -38,18 +38,19 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setIsLoading(true);
 
-    // Validate form data
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       setIsAlertOpen(true);
+      setIsLoading(false);
       return;
     }
 
-    // Basic input validation
     if (!formData.name || !formData.email || !formData.password) {
       setError("Please fill in all fields");
       setIsAlertOpen(true);
+      setIsLoading(false);
       return;
     }
 
@@ -69,22 +70,21 @@ export default function SignupPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        // Handle specific error messages from backend
         setError(data.error || "Signup failed");
         setIsAlertOpen(true);
+        setIsLoading(false);
         return;
       }
 
-      // Determine redirect based on user role
       const isArtist = formData.email.endsWith('@artist.com');
-      const redirectPath = isArtist ? '/artist/upload' : '/';
+      const redirectPath = isArtist ? '/artist/upload' : '/login';
 
-      // Redirect or show success message
       router.push(redirectPath);
     } catch (error) {
       console.error("Error during signup:", error);
       setError("An unexpected error occurred");
       setIsAlertOpen(true);
+      setIsLoading(false);
     }
   };
 
@@ -109,6 +109,7 @@ export default function SignupPage() {
                 value={formData.name}
                 onChange={handleChange}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -121,6 +122,7 @@ export default function SignupPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                disabled={isLoading}
               />
               <p className="text-xs text-muted-foreground">
                 Use @artist.com email to sign up as an artist
@@ -135,6 +137,7 @@ export default function SignupPage() {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -146,9 +149,23 @@ export default function SignupPage() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full">Create account</Button>
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Create account"
+              )}
+            </Button>
             <div className="text-center text-sm">
               Already have an account?{" "}
               <Link href="/login" className="text-primary hover:underline">
