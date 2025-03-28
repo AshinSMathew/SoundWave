@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from "next/link"
 import { Music, Search, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,7 @@ export default function Home() {
   const [songs, setSongs] = useState<Song[]>([])
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [loading, setLoading] = useState(true)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     const fetchSongs = async () => {
@@ -56,7 +57,18 @@ export default function Home() {
 
   const playSong = (song: Song) => {
     setCurrentSong(song)
+    // Auto-play will be handled by the MusicPlayer component
   }
+
+  // Handle auto-play when currentSong changes
+  useEffect(() => {
+    if (currentSong && audioRef.current) {
+      audioRef.current.src = currentSong.audio_url
+      audioRef.current.play().catch(error => {
+        console.error('Auto-play failed:', error)
+      })
+    }
+  }, [currentSong])
 
   if (loading) {
     return (
@@ -67,7 +79,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/80 pb-24 md:pb-0">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
           <div className="flex gap-6 md:gap-10">
@@ -119,12 +131,17 @@ export default function Home() {
       </main>
 
       {currentSong && (
-        <MusicPlayer 
-          title={currentSong.title} 
-          artist={currentSong.artist_name} 
-          coverUrl={currentSong.cover_image || '/placeholder.svg'}
-          src={currentSong.audio_url}
-        />
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 p-2 md:p-4">
+          <MusicPlayer 
+            ref={audioRef}
+            title={currentSong.title} 
+            artist={currentSong.artist_name} 
+            coverUrl={currentSong.cover_image || '/placeholder.svg'}
+            src={currentSong.audio_url}
+            autoPlay={true}
+            className="max-w-screen-md mx-auto"
+          />
+        </div>
       )}
     </div>
   )
