@@ -68,7 +68,7 @@ export default function LoginPage() {
       }
 
       const redirectPath = data.user.role === 'artist' 
-        ? '/artist/dashboard' 
+        ? '/artist/profile' 
         : '/dashboard';
       router.push(redirectPath);
 

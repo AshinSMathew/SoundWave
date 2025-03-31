@@ -97,7 +97,7 @@ export default function MusicUploadPage() {
       setAudioFile(null)
 
       setTimeout(() => {
-        router.push('/artist/dashboard')
+        router.push('/artist/profile')
       }, 1500)
 
     } catch (error) {
@@ -121,8 +121,8 @@ export default function MusicUploadPage() {
     setAudioFile(null)
   }
 
-  const handleBackToDashboard = () => {
-    router.push('/artist/dashboard')
+  const handleBackToProfile = () => {
+    router.push('/artist/profile')
   }
 
   return (
@@ -132,7 +132,7 @@ export default function MusicUploadPage() {
         <Button 
           variant="outline" 
           size="icon" 
-          onClick={handleBackToDashboard}
+          onClick={handleBackToProfile}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
