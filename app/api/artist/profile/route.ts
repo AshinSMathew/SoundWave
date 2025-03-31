@@ -45,7 +45,6 @@ export async function GET(req: NextRequest) {
         ORDER BY 
             s.created_at DESC
     `;
-    console.log(songs)
     return NextResponse.json(songs);
   } catch (error) {
     console.error('Error fetching artist tracks:', error);

@@ -1,6 +1,6 @@
 "use client"
 import { forwardRef, useState, useEffect } from 'react'
-import { Play, Pause, SkipBack, SkipForward, Volume2 } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Volume2, X } from 'lucide-react'
 import { Slider } from '@/components/ui/slider'
 
 interface MusicPlayerProps {
@@ -12,10 +12,11 @@ interface MusicPlayerProps {
   className?: string
   onNext?: () => void
   onPrevious?: () => void
+  onClose?: () => void
 }
 
 export const MusicPlayer = forwardRef<HTMLAudioElement, MusicPlayerProps>(
-  ({ title, artist, coverUrl, src, autoPlay = false, className, onNext, onPrevious }, ref) => {
+  ({ title, artist, coverUrl, src, autoPlay = false, className, onNext, onPrevious, onClose }, ref) => {
     const [isPlaying, setIsPlaying] = useState(autoPlay)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
@@ -77,7 +78,7 @@ export const MusicPlayer = forwardRef<HTMLAudioElement, MusicPlayerProps>(
 
     return (
       <div className={`flex flex-col gap-2 bg-background p-3 rounded-lg shadow-lg ${className}`}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 relative">
           <img 
             src={coverUrl} 
             alt={`${title} cover`} 
@@ -85,7 +86,16 @@ export const MusicPlayer = forwardRef<HTMLAudioElement, MusicPlayerProps>(
           />
           
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-medium truncate">{title}</h3>
+            <div className="flex justify-between items-start">
+              <h3 className="text-sm font-medium truncate pr-6">{title}</h3>
+              <button
+                onClick={onClose}
+                className="absolute right-0 top-0 text-muted-foreground hover:text-destructive p-1"
+                aria-label="Close player"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground truncate">{artist}</p>
             
             <div className="flex items-center gap-2 mt-1">
@@ -125,7 +135,7 @@ export const MusicPlayer = forwardRef<HTMLAudioElement, MusicPlayerProps>(
         </div>
 
         <div className="flex items-center gap-2 w-full">
-          <span className="text-xs text-muted-foreground w-10">
+          <span className="text-xs text-muted-foreground w-8 text-right">
             {formatTime(currentTime)}
           </span>
           <Slider
@@ -135,14 +145,14 @@ export const MusicPlayer = forwardRef<HTMLAudioElement, MusicPlayerProps>(
             onValueChange={handleTimeChange}
             className="flex-1"
           />
-          <span className="text-xs text-muted-foreground w-10">
+          <span className="text-xs text-muted-foreground w-8">
             {formatTime(duration)}
           </span>
         </div>
 
         {showVolume && (
-          <div className="flex items-center gap-2">
-            <Volume2 className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 mt-1">
+            <Volume2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <Slider
               value={[volume * 100]}
               max={100}
@@ -150,6 +160,9 @@ export const MusicPlayer = forwardRef<HTMLAudioElement, MusicPlayerProps>(
               onValueChange={(value) => setVolume(value[0] / 100)}
               className="flex-1"
             />
+            <span className="text-xs text-muted-foreground w-8 text-right">
+              {Math.round(volume * 100)}%
+            </span>
           </div>
         )}
 

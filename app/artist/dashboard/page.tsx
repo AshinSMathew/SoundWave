@@ -31,7 +31,7 @@ export default function ArtistDashboard() {
     async function fetchArtistTracks() {
       try {
         setIsLoading(true)
-        const response = await fetch('/api/artist/')
+        const response = await fetch('/api/artist/profile')
         
         if (!response.ok) {
           throw new Error('Failed to fetch tracks')

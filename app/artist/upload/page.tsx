@@ -79,7 +79,7 @@ export default function MusicUploadPage() {
     formData.append('audioFile', audioFile)
   
     try {
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/artist/upload', {
         method: 'POST',
         body: formData
       })

@@ -83,6 +83,13 @@ export default function Home() {
       </div>
     )
   }
+  const closeMusicPlayer = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.pause();
+    }
+    setCurrentSong(null);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80 pb-24 md:pb-0">
@@ -170,14 +177,15 @@ export default function Home() {
 
       {currentSong && (
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 p-2 md:p-4">
-          <MusicPlayer
+          <MusicPlayer 
             ref={audioRef}
-            title={currentSong.title}
-            artist={currentSong.artist_name}
-            coverUrl={currentSong.cover_image || "/placeholder.svg"}
+            title={currentSong.title} 
+            artist={currentSong.artist_name} 
+            coverUrl={currentSong.cover_image || '/placeholder.svg'}
             src={currentSong.audio_url}
             autoPlay={true}
             className="max-w-screen-md mx-auto"
+            onClose={closeMusicPlayer}
           />
         </div>
       )}
