@@ -1,11 +1,14 @@
 "use client"
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef } from "react"
+import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
 import Link from "next/link"
-import { Music, Search, LogOut } from "lucide-react"
+import { Music, Search, LogOut, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MusicCard } from "@/components/music-card"
 import { MusicPlayer } from "@/components/music-player"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuGroup } from "@/components/ui/dropdown-menu"
 
 interface Song {
   id: number
@@ -21,17 +24,18 @@ export default function Home() {
   const [songs, setSongs] = useState<Song[]>([])
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedGenre, setSelectedGenre] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     const fetchSongs = async () => {
       try {
-        const response = await fetch('/api/songs')
+        const response = await fetch("/api/dashboard/songs")
         const data = await response.json()
         setSongs(data)
       } catch (error) {
-        console.error('Error fetching songs:', error)
-        setSongs([]);
+        console.error("Error fetching songs:", error)
+        setSongs([])
       } finally {
         setLoading(false)
       }
@@ -42,33 +46,35 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'same-origin'
-      });
-      
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+      })
+
       if (response.ok) {
-        window.location.href = '/login';
+        window.location.href = "/login"
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error)
     }
-  };
+  }
 
   const playSong = (song: Song) => {
     setCurrentSong(song)
-    // Auto-play will be handled by the MusicPlayer component
   }
 
-  // Handle auto-play when currentSong changes
   useEffect(() => {
     if (currentSong && audioRef.current) {
       audioRef.current.src = currentSong.audio_url
-      audioRef.current.play().catch(error => {
-        console.error('Auto-play failed:', error)
+      audioRef.current.play().catch((error) => {
+        console.error("Auto-play failed:", error)
       })
     }
   }, [currentSong])
+
+  const genres = [...new Set(songs.map((song) => song.genre))].sort()
+
+  const filteredSongs = selectedGenre ? songs.filter((song) => song.genre === selectedGenre) : songs
 
   if (loading) {
     return (
@@ -97,11 +103,7 @@ export default function Home() {
                 className="w-full rounded-full bg-background pl-8 md:w-[300px] lg:w-[400px]"
               />
             </div>
-            <Button 
-              variant="ghost" 
-              className="text-muted-foreground hover:text-destructive"
-              onClick={handleLogout}
-            >
+            <Button variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={handleLogout}>
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
@@ -112,31 +114,67 @@ export default function Home() {
         <section className="mb-10 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold tracking-tight">All Songs</h2>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Filter className="h-4 w-4" />
+                  {selectedGenre ? selectedGenre : "All Genres"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Filter by Genre</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    onClick={() => setSelectedGenre(null)}
+                    className={!selectedGenre ? "bg-accent text-accent-foreground" : ""}
+                  >
+                    All Genres
+                  </DropdownMenuItem>
+                  {genres.map((genre) => (
+                    <DropdownMenuItem
+                      key={genre}
+                      onClick={() => setSelectedGenre(genre)}
+                      className={selectedGenre === genre ? "bg-accent text-accent-foreground" : ""}
+                    >
+                      {genre}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          
+
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {songs.map((song) => (
-              <MusicCard
-                key={song.id}
-                title={song.title}
-                artist={song.artist_name}
-                genre={song.genre}
-                coverUrl={song.cover_image || '/placeholder.svg'}
-                duration={song.duration || '0:00'}
-                onClick={() => playSong(song)}
-              />
-            ))}
+            {filteredSongs.length > 0 ? (
+              filteredSongs.map((song) => (
+                <MusicCard
+                  key={song.id}
+                  title={song.title}
+                  artist={song.artist_name}
+                  genre={song.genre}
+                  coverUrl={song.cover_image || "/placeholder.svg"}
+                  duration={song.duration || "0:00"}
+                  onClick={() => playSong(song)}
+                />
+              ))
+            ) : (
+              <div className="col-span-full py-12 text-center">
+                <p className="text-muted-foreground">No songs found in this genre.</p>
+              </div>
+            )}
           </div>
         </section>
       </main>
 
       {currentSong && (
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-50 p-2 md:p-4">
-          <MusicPlayer 
+          <MusicPlayer
             ref={audioRef}
-            title={currentSong.title} 
-            artist={currentSong.artist_name} 
-            coverUrl={currentSong.cover_image || '/placeholder.svg'}
+            title={currentSong.title}
+            artist={currentSong.artist_name}
+            coverUrl={currentSong.cover_image || "/placeholder.svg"}
             src={currentSong.audio_url}
             autoPlay={true}
             className="max-w-screen-md mx-auto"
