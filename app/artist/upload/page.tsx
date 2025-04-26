@@ -45,10 +45,7 @@ export default function MusicUploadPage() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [apiUrl, setApiUrl] = useState("/api/artist/upload")
 
-  // Set the proper API URL depending on environment
   useEffect(() => {
-    // In development, use relative path
-    // In production on Vercel, use absolute path
     const host = window.location.host
     const protocol = window.location.protocol
     
@@ -76,7 +73,6 @@ export default function MusicUploadPage() {
   const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validate audio file size (20MB limit)
       if (file.size > 20 * 1024 * 1024) {
         toast({
           title: "File Too Large",
@@ -129,7 +125,6 @@ export default function MusicUploadPage() {
       const response = await fetch(apiUrl, {
         method: "POST",
         body: formData,
-        // Important: Ensure cookies are sent with the request
         credentials: "include",
       })
 
@@ -319,7 +314,7 @@ export default function MusicUploadPage() {
                     <div className="border-2 border-dashed border-border/50 bg-background/30 p-8 text-center rounded-xl w-full max-w-md mb-4">
                       <FileAudio className="mx-auto h-12 w-12 text-muted-foreground" />
                       <p className="mt-2 text-sm text-muted-foreground">Upload Audio File</p>
-                      <p className="text-xs text-muted-foreground mt-1">MP3, WAV, FLAC. Max 20MB.</p>
+                      <p className="text-xs text-muted-foreground mt-1">MP3, WAV, FLAC. Max 4.5MB.</p>
                     </div>
                   )}
                   <Input
