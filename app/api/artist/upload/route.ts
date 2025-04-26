@@ -4,13 +4,6 @@ import { cloudinary } from '@/cloudinary';
 import { UploadApiResponse } from 'cloudinary';
 import { getEmailFromAuthToken } from "@/lib/utils";
 
-// Configuration
-export const config = {
-  api: {
-    bodyParser: false, // Required for file uploads
-  },
-};
-
 // Constants
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
 const MAX_AUDIO_SIZE = 20 * 1024 * 1024; // 20MB
@@ -71,17 +64,35 @@ const validateFile = (file: File, allowedTypes: string[], maxSize: number, fileT
 };
 
 export async function POST(request: NextRequest) {
+  // Log the incoming request for debugging
+  console.log("Upload API called:", request.url);
+  
+  // Add CORS headers for cross-origin requests
+  const headers = new Headers({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  });
+
+  // Handle preflight OPTIONS request
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, { status: 204, headers });
+  }
+
   // Authentication
   const email = getEmailFromAuthToken(request);
+  console.log("Auth check, email:", email ? "found" : "not found");
+  
   if (!email) {
     return NextResponse.json(
       { success: false, message: 'Unauthorized. Email not found.' },
-      { status: 401 }
+      { status: 401, headers }
     );
   }
 
   try {
     const formData = await request.formData();
+    console.log("FormData received");
 
     // Validate form fields
     const title = formData.get('title')?.toString()?.trim();
@@ -89,17 +100,24 @@ export async function POST(request: NextRequest) {
     const coverImage = formData.get('coverImage') as File | null;
     const audioFile = formData.get('audioFile') as File | null;
 
+    console.log("Form fields:", { 
+      title: title ? "✓" : "✗", 
+      genre: genre ? "✓" : "✗", 
+      coverImage: coverImage ? "✓" : "✗", 
+      audioFile: audioFile ? "✓" : "✗" 
+    });
+
     if (!title || !genre) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
-        { status: 400 }
+        { status: 400, headers }
       );
     }
 
     if (!coverImage || !audioFile) {
       return NextResponse.json(
         { success: false, error: 'Missing cover image or audio file' },
-        { status: 400 }
+        { status: 400, headers }
       );
     }
 
@@ -107,33 +125,41 @@ export async function POST(request: NextRequest) {
     try {
       validateFile(coverImage, ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, 'Cover image');
       validateFile(audioFile, ALLOWED_AUDIO_TYPES, MAX_AUDIO_SIZE, 'Audio file');
+      console.log("File validation passed");
     } catch (validationError) {
+      console.error("File validation error:", validationError);
       return NextResponse.json(
         { success: false, error: validationError instanceof Error ? validationError.message : 'Invalid file' },
-        { status: 400 }
+        { status: 400, headers }
       );
     }
 
+    console.log("Starting Cloudinary uploads");
     // Upload files in parallel
     const [coverImageUpload, audioFileUpload] = await Promise.all([
       uploadToCloudinary(coverImage, 'image', 'covers'),
       uploadToCloudinary(audioFile, 'auto', 'tracks'),
     ]);
+    console.log("Cloudinary uploads complete");
 
     // Get artist ID
+    console.log("Querying artist ID for email:", email);
     const [artist] = await db`
       SELECT id FROM artists 
       WHERE user_id = (SELECT id FROM users WHERE email = ${email})
     `;
 
     if (!artist?.id) {
+      console.error("Artist not found for email:", email);
       return NextResponse.json(
         { success: false, error: 'Artist profile not found' },
-        { status: 404 }
+        { status: 404, headers }
       );
     }
+    console.log("Artist found, ID:", artist.id);
 
     // Insert song into database
+    console.log("Inserting song into database");
     const [newSong] = await db`
       INSERT INTO songs (
         title, 
@@ -151,6 +177,7 @@ export async function POST(request: NextRequest) {
         NOW()
       ) RETURNING id, title
     `;
+    console.log("Song inserted, ID:", newSong.id);
 
     return NextResponse.json({
       success: true,
@@ -162,7 +189,7 @@ export async function POST(request: NextRequest) {
         coverImageUrl: coverImageUpload.url,
         publicId: audioFileUpload.publicId,
       }
-    }, { status: 200 });
+    }, { status: 200, headers });
 
   } catch (error) {
     console.error('Upload error:', error);
@@ -172,7 +199,19 @@ export async function POST(request: NextRequest) {
         error: 'Upload failed',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
+      { status: 500, headers }
     );
   }
+}
+
+// Handle OPTIONS requests for CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }

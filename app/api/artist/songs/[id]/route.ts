@@ -18,26 +18,24 @@ if (process.env.CLOUDINARY_CLOUD_NAME &&
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  // Destructure params properly
-  const { id } = params;
-  const songId = parseInt(id);
-  
-  if (isNaN(songId)) {
-    return NextResponse.json(
-      { message: 'Invalid song ID' },
-      { status: 400 }
-    );
-  }
-
-  const email = getEmailFromAuthToken(req);
-  if (!email) {
-    return NextResponse.json(
-      { message: 'Unauthorized. Email not found.' },
-      { status: 401 }
-    );
-  }
-
   try {
+    const songId = parseInt(params.id);
+    
+    if (isNaN(songId)) {
+      return NextResponse.json(
+        { message: 'Invalid song ID' },
+        { status: 400 }
+      );
+    }
+
+    const email = getEmailFromAuthToken(req);
+    if (!email) {
+      return NextResponse.json(
+        { message: 'Unauthorized. Email not found.' },
+        { status: 401 }
+      );
+    }
+
     const artistResult = await db`
       SELECT a.id 
       FROM artists a
@@ -65,20 +63,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         { message: 'Song not found or not owned by artist' },
         { status: 404 }
       );
-    }
-
-    // Delete from Cloudinary if image exists and Cloudinary is configured
-    const coverImageUrl = songResult[0].cover_image;
-    if (coverImageUrl && process.env.CLOUDINARY_CLOUD_NAME) {
-      try {
-        const publicId = coverImageUrl.split('/').pop()?.split('.')[0];
-        if (publicId) {
-          await cloudinary.uploader.destroy(publicId);
-        }
-      } catch (cloudinaryError) {
-        console.error('Cloudinary deletion error:', cloudinaryError);
-        // Continue with DB deletion even if Cloudinary fails
-      }
     }
 
     // Delete from database
@@ -164,46 +148,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     }
 
     let coverImageUrl = songResult[0].cover_image;
-
-    // Handle new cover image upload if Cloudinary is configured
-    if (coverImageFile && coverImageFile.size > 0 && process.env.CLOUDINARY_CLOUD_NAME) {
-      try {
-        // Delete old image from Cloudinary if it exists
-        if (coverImageUrl) {
-          const publicId = coverImageUrl.split('/').pop()?.split('.')[0];
-          if (publicId) {
-            await cloudinary.uploader.destroy(publicId);
-          }
-        }
-
-        // Upload new image to Cloudinary
-        const arrayBuffer = await coverImageFile.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        const result = await new Promise((resolve, reject) => {
-          cloudinary.uploader.upload_stream(
-            {
-              folder: 'song_covers',
-              resource_type: 'image',
-              format: 'webp',
-              quality: 'auto:good'
-            },
-            (error, result) => {
-              if (error) reject(error);
-              resolve(result);
-            }
-          ).end(buffer);
-        });
-
-        coverImageUrl = (result as any).secure_url;
-      } catch (cloudinaryError) {
-        console.error('Cloudinary upload error:', cloudinaryError);
-        return NextResponse.json(
-          { error: 'Failed to upload cover image' },
-          { status: 500 }
-        );
-      }
-    }
 
     // Update song in database
     const updatedSong = await db`

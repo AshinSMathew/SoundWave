@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, type FormEvent } from "react"
+import { useState, type FormEvent, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Music, Upload, X, ImageIcon, ArrowLeft, FileAudio, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -43,11 +43,23 @@ export default function MusicUploadPage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [apiUrl, setApiUrl] = useState("/api/artist/upload")
+
+  // Set the proper API URL depending on environment
+  useEffect(() => {
+    // In development, use relative path
+    // In production on Vercel, use absolute path
+    const host = window.location.host
+    const protocol = window.location.protocol
+    
+    if (host.includes('vercel.app') || host.includes('localhost') === false) {
+      setApiUrl(`${protocol}//${host}/api/artist/upload`)
+    }
+  }, [])
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validate image file size (2MB limit)
       if (file.size > 2 * 1024 * 1024) {
         toast({
           title: "File Too Large",
@@ -97,6 +109,15 @@ export default function MusicUploadPage() {
     formData.append("audioFile", audioFile)
 
     try {
+      // Log form data for debugging
+      console.log("Uploading to:", apiUrl)
+      console.log("Form data:", {
+        title,
+        genre,
+        coverImage: coverImage ? `${coverImage.name} (${coverImage.size} bytes)` : null,
+        audioFile: audioFile ? `${audioFile.name} (${audioFile.size} bytes)` : null,
+      })
+
       // Simulate upload progress
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
@@ -105,20 +126,26 @@ export default function MusicUploadPage() {
         })
       }, 300)
 
-      const response = await fetch("/api/artist/upload", {
+      const response = await fetch(apiUrl, {
         method: "POST",
         body: formData,
+        // Important: Ensure cookies are sent with the request
+        credentials: "include",
       })
 
       clearInterval(progressInterval)
       setUploadProgress(100)
 
+      console.log("Upload response status:", response.status)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.error("Server error response:", errorData)
         throw new Error(errorData.error || "Upload failed")
       }
 
       const result = await response.json()
+      console.log("Upload success:", result)
 
       toast({
         title: "Upload Successful",
@@ -136,7 +163,7 @@ export default function MusicUploadPage() {
         router.push("/artist/profile")
       }, 1500)
     } catch (error) {
-      console.error("Upload error:", error)
+      console.error("Upload error details:", error)
       toast({
         title: "Upload Failed",
         description: error instanceof Error ? error.message : "An error occurred during upload",
