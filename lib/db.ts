@@ -3,12 +3,8 @@ import { neon } from "@neondatabase/serverless";
 if (!process.env.DATABASE_URL) {
   throw new Error("Missing DATABASE_URL in environment variables.");
 }
-// Create a connection to Neon DB
-// This client doesn't require native compilation
 export const db = neon(process.env.DATABASE_URL);
 
-
-// Initialize database tables
 const schema = async () => {
   try {
     await db`
@@ -37,6 +33,13 @@ const schema = async () => {
         audio_url TEXT NOT NULL,
         cover_image TEXT,
         created_at TIMESTAMP DEFAULT NOW())
+    `;
+
+    await db`
+    CREATE TABLE IF NOT EXISTS user_favorites (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      song_ids INTEGER[] DEFAULT '{}'::INTEGER[],
+      updated_at TIMESTAMP DEFAULT NOW())
     `;
 
     console.log("Database initialized successfully")

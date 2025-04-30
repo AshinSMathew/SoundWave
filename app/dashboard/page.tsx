@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react"
 import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 import Link from "next/link"
-import { Music, Search, LogOut, Filter, Heart, Clock, Disc, Headphones, Volume2, Menu, X } from "lucide-react"
+import { Music, Search, LogOut, Filter, Heart, Disc, Headphones, Volume2, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MusicPlayer } from "@/components/music-player"
