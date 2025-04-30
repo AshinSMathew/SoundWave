@@ -297,7 +297,7 @@ export default function ArtistDashboard() {
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-6 md:gap-10">
-            <Link href="/" className="flex items-center space-x-2 group">
+            <Link href="" className="flex items-center space-x-2 group">
               <div className="bg-primary/10 p-1.5 rounded-full group-hover:bg-primary/20 transition-colors">
                 <Music className="h-5 w-5 text-primary" />
               </div>

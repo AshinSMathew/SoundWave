@@ -25,7 +25,6 @@ interface Song {
   genre: string
   audio_url: string
   cover_image: string
-  duration?: string
 }
 
 export default function Home() {
@@ -112,7 +111,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
           <div className="flex gap-6 md:gap-10">
-            <Link href="/" className="flex items-center space-x-2 group">
+            <Link href="" className="flex items-center space-x-2 group">
               <div className="bg-primary/10 p-1.5 rounded-full group-hover:bg-primary/20 transition-colors">
                 <Music className="h-5 w-5 text-primary" />
               </div>
@@ -273,7 +272,6 @@ export default function Home() {
                           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                             {song.genre}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">{song.duration || "0:00"}</span>
                         </div>
                       </div>
                     </div>
