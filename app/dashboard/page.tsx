@@ -28,6 +28,7 @@ interface Song {
 }
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState("")
   const [songs, setSongs] = useState<Song[]>([])
   const [currentSong, setCurrentSong] = useState<Song | null>(null)
   const [loading, setLoading] = useState(true)
@@ -82,7 +83,11 @@ export default function Home() {
 
   const genres = [...new Set(songs.map((song) => song.genre))].sort()
 
-  const filteredSongs = selectedGenre ? songs.filter((song) => song.genre === selectedGenre) : songs
+  const filteredSongs = songs.filter(
+    (song) =>
+      song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      song.genre.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
 
   if (loading) {
     return (
@@ -124,9 +129,10 @@ export default function Home() {
             <div className="relative w-full max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                type="search"
-                placeholder="Search music, artists..."
-                className="w-full rounded-full bg-muted/50 pl-10 pr-4 focus-visible:ring-primary/50 md:w-[300px] lg:w-[400px]"
+                placeholder="Search tracks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 bg-background/50 w-full sm:w-auto max-w-sm"
               />
             </div>
             <Avatar className="h-9 w-9 border-2 border-primary/20">
