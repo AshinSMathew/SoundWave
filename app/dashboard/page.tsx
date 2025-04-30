@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react"
 import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 import Link from "next/link"
-import { Music, Search, LogOut, Filter, Heart, Clock, Disc, Headphones, Volume2 } from "lucide-react"
+import { Music, Search, LogOut, Filter, Heart, Clock, Disc, Headphones, Volume2, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MusicPlayer } from "@/components/music-player"
@@ -34,6 +34,11 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const toggleSidebar = () => {
+    setSidebarOpen((prev) => !prev)
+  }
 
   useEffect(() => {
     const fetchSongs = async () => {
@@ -84,9 +89,14 @@ export default function Home() {
   const genres = [...new Set(songs.map((song) => song.genre))].sort()
 
   const filteredSongs = songs.filter(
-    (song) =>
-      song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      song.genre.toLowerCase().includes(searchQuery.toLowerCase()),
+    (song) =>{
+      const matchesSearch = 
+        song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        song.artist_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        song.genre.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesGenre = selectedGenre === null || song.genre === selectedGenre
+      return matchesSearch && matchesGenre
+    }
   )
 
   if (loading) {
@@ -115,7 +125,11 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-b from-background via-background/95 to-background/90 pb-24 md:pb-0">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center space-x-4 sm:justify-between sm:space-x-0">
-          <div className="flex gap-6 md:gap-10">
+          <div className="flex gap-6 md:gap-10 items-center">
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleSidebar}>
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle menu</span>
+            </Button>
             <Link href="" className="flex items-center space-x-2 group">
               <div className="bg-primary/10 p-1.5 rounded-full group-hover:bg-primary/20 transition-colors">
                 <Music className="h-5 w-5 text-primary" />
@@ -153,63 +167,92 @@ export default function Home() {
       </header>
 
       <main className="container pb-8 pt-8">
-        <div className="flex flex-col md:flex-row gap-6 mb-10">
-          <div className="md:w-64 space-y-6">
-            <div className="bg-card/30 backdrop-blur-sm rounded-xl p-4 border border-border/50">
-              <h3 className="font-medium mb-3 flex items-center gap-2">
-                <Headphones className="h-4 w-4 text-primary" />
-                <span>Quick Links</span>
-              </h3>
-              <nav className="space-y-1">
-                <Link href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary">
-                  <Disc className="h-4 w-4" />
-                  <span>Discover</span>
-                </Link>
-                <Link
-                  href="#"
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Heart className="h-4 w-4" />
-                  <span>Favorites</span>
-                </Link>
-                <Link
-                  href="#"
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Clock className="h-4 w-4" />
-                  <span>Recently Played</span>
-                </Link>
-              </nav>
+        <div className="flex flex-col md:flex-row gap-6 mb-10 relative">
+          {/* Mobile sidebar overlay */}
+          {sidebarOpen && (
+            <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+          )}
+
+          {/* Sidebar */}
+          <div
+            className={`
+        fixed md:relative top-0 left-0 z-50 h-full w-64 
+        transform transition-transform duration-300 ease-in-out
+        bg-background border-r border-border/50 md:border-none
+        md:transform-none md:opacity-100 md:w-64 md:block
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+      `}
+          >
+            <div className="h-16 flex items-center justify-between px-4 md:hidden border-b">
+              <Link href="" className="flex items-center space-x-2 group">
+                <div className="bg-primary/10 p-1.5 rounded-full group-hover:bg-primary/20 transition-colors">
+                  <Music className="h-5 w-5 text-primary" />
+                </div>
+                <span className="inline-block font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/70">
+                  SoundWave
+                </span>
+              </Link>
+              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
+                <X className="h-5 w-5" />
+              </Button>
             </div>
 
-            <div className="bg-card/30 backdrop-blur-sm rounded-xl p-4 border border-border/50">
-              <h3 className="font-medium mb-3 flex items-center gap-2">
-                <Volume2 className="h-4 w-4 text-primary" />
-                <span>Genres</span>
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => setSelectedGenre(null)}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${!selectedGenre ? "bg-primary/10 text-primary" : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"}`}
-                >
-                  All Genres
-                </button>
-                {genres.map((genre) => (
-                  <button
-                    key={genre}
-                    onClick={() => setSelectedGenre(genre)}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${selectedGenre === genre ? "bg-primary/10 text-primary" : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"}`}
+            <div className="p-4 space-y-6 overflow-y-auto h-[calc(100vh-4rem)]">
+              <div className="bg-card/30 backdrop-blur-sm rounded-xl p-4 border border-border/50">
+                <h3 className="font-medium mb-3 flex items-center gap-2">
+                  <Headphones className="h-4 w-4 text-primary" />
+                  <span>Quick Links</span>
+                </h3>
+                <nav className="space-y-1">
+                  <Link href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary">
+                    <Disc className="h-4 w-4" />
+                    <span>Discover</span>
+                  </Link>
+                  <Link
+                    href="#"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {genre}
+                    <Heart className="h-4 w-4" />
+                    <span>Favorites</span>
+                  </Link>
+                  <Link
+                    href="#"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                  </Link>
+                </nav>
+              </div>
+
+              <div className="bg-card/30 backdrop-blur-sm rounded-xl p-4 border border-border/50">
+                <h3 className="font-medium mb-3 flex items-center gap-2">
+                  <Volume2 className="h-4 w-4 text-primary" />
+                  <span>Genres</span>
+                </h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setSelectedGenre(null)}
+                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${!selectedGenre ? "bg-primary/10 text-primary" : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"}`}
+                  >
+                    All Genres
                   </button>
-                ))}
+                  {genres.map((genre) => (
+                    <button
+                      key={genre}
+                      onClick={() => setSelectedGenre(genre)}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${selectedGenre === genre ? "bg-primary/10 text-primary" : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {genre}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
+          {/* Main content */}
           <div className="flex-1">
             <section className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight">
                     {selectedGenre ? `${selectedGenre} Music` : "All Songs"}
@@ -219,7 +262,7 @@ export default function Home() {
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2 rounded-lg">
+                    <Button variant="outline" size="sm" className="gap-2 rounded-lg w-full sm:w-auto">
                       <Filter className="h-4 w-4" />
                       Filter
                     </Button>
